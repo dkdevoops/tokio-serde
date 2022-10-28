@@ -314,7 +314,8 @@ pub type SymmetricallyFramed<Transport, Value, Codec> = Framed<Transport, Value,
     feature = "json",
     feature = "bincode",
     feature = "messagepack",
-    feature = "cbor"
+    feature = "cbor",
+    feature = "flexbuffers"
 ))]
 pub mod formats {
     #[cfg(feature = "bincode")]
@@ -325,6 +326,8 @@ pub mod formats {
     pub use self::json::*;
     #[cfg(feature = "messagepack")]
     pub use self::messagepack::*;
+    #[cfg(feature = "flexbuffers")]
+    pub use self::flexbuffers::*;
 
     use super::{Deserializer, Serializer};
     use bytes::{Bytes, BytesMut};
@@ -550,6 +553,47 @@ pub mod formats {
                         .unwrap_or(ErrorKind::Other);
                     io::Error::new(kind, cbor_err)
                 }
+            }
+        }
+    }
+
+    #[cfg(feature = "flexbuffers")]
+    mod flexbuffers {
+        use super::*;
+        use std::io;
+        use flexbuffers;
+
+        #[cfg_attr(docsrs, doc(cfg(feature = "flexbuffers")))]
+        #[derive(Educe)]
+        #[educe(Debug, Default)]
+        pub struct FlexBuffer<Item, SinkItem> {
+            #[educe(Debug(ignore), Default(expression = "PhantomData"))]
+            ghost: PhantomData<(Item, SinkItem)>,
+        }
+
+
+        #[cfg_attr(docsrs, doc(cfg(feature = "flexbuffers")))]
+        pub type SymmetricalFlexBuffer<T> = FlexBuffer<T, T>;
+
+        impl<Item, SinkItem> Deserializer<Item> for FlexBuffer<Item, SinkItem>
+        where
+            for<'a> Item: Deserialize<'a>,
+        {
+            type Error = io::Error;
+
+            fn deserialize(self: Pin<&mut Self>, src: &BytesMut) -> Result<Item, Self::Error> {
+                flexbuffers::from_slice(src).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+            }
+        }
+
+        impl<Item, SinkItem> Serializer<SinkItem> for FlexBuffer<Item, SinkItem>
+        where
+            SinkItem: Serialize
+        {
+            type Error = io::Error;
+
+            fn serialize(self: Pin<&mut Self>, item: &SinkItem) -> Result<Bytes, Self::Error> {
+                Ok(flexbuffers::to_vec(item).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?.into())
             }
         }
     }

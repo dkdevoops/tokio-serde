@@ -29,6 +29,7 @@ futures-sink = "0.3"
 pin-project = "1"
 serde = { version = "1", optional = true }
 bincode-crate = { package = "bincode", version = "1", optional = true }
+flexbuffers = { version = "2", optional = true }
 serde_json = { version = "1", optional = true }
 rmp-serde = { version = "0.15", optional = true }
 serde_cbor = { version = "0.11", optional = true }
@@ -49,6 +50,7 @@ bincode = ["educe/Debug", "serde", "bincode-crate"]
 json = ["educe/Debug", "educe/Default", "serde", "serde_json"]
 messagepack = ["educe/Debug", "educe/Default", "serde", "rmp-serde"]
 cbor = ["educe/Debug", "educe/Default", "serde", "serde_cbor"]
+flexbuffers = ["educe/Debug", "educe/Default", "serde", "flexbuffers"]
 
 [[example]]
 name = "client"
